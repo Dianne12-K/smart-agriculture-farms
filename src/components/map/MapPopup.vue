@@ -49,6 +49,12 @@
                 @click="$emit('edit', popup.feature)">
           <i class="pi pi-pencil" /> Edit
         </button>
+        <button class="flex items-center justify-center gap-1 flex-1 px-2.5 py-1 rounded-md bg-gray-700
+                       text-gray-300 text-[11px] transition-all hover:bg-gray-600 hover:text-white"
+                title="Edit attribute values"
+                @click="$emit('edit-attributes', popup.feature)">
+          <i class="pi pi-sliders-h" /> Attributes
+        </button>
         <button class="flex items-center justify-center gap-1 px-2.5 py-1 rounded-md bg-gray-700
                        text-gray-300 text-[11px] transition-all hover:bg-red-800 hover:text-white"
                 @click="$emit('delete', popup.feature)">
@@ -61,5 +67,5 @@
 
 <script setup>
 defineProps({ popup: Object })
-defineEmits(['close', 'analytics', 'edit', 'delete'])
+defineEmits(['close', 'analytics', 'edit', 'edit-attributes', 'delete'])
 </script>

@@ -48,13 +48,19 @@ export const getProjects   = ()           => api.get('/projects')
 export const createProject = (data)       => api.post('/projects', data)
 export const deleteProject  = (uuid)       => api.delete(`/projects/${uuid}`)
 
-export const updateProject = (uuid, data) => api.put(`/api/projects/${uuid}`, data)
+export const updateProject = (uuid, data) => api.put(`/projects/${uuid}`, data)
 
 // ─── LAYER GROUPS ──────────────────────────────────────────────────────────
 export const getLayerGroups   = (projectUuid) => api.get('/layergroups', { params: { project_uuid: projectUuid } })
 export const createLayerGroup = (data)        => api.post('/layergroups', data)
 export const getLayerGroup    = (groupUuid)   => api.get(`/layergroups/${groupUuid}`)
 export const deleteLayerGroup = (groupUuid)   => api.delete(`/layergroups/${groupUuid}`)
+
+// ─── BASEMAPS ──────────────────────────────────────────────────────────────
+export const getBasemaps   = (projectUuid)     => api.get('/basemaps', { params: { project_uuid: projectUuid } })
+export const createBasemap = (data)            => api.post('/basemaps', data)
+export const updateBasemap = (basemapUuid, data) => api.patch(`/basemaps/${basemapUuid}`, data)
+export const deleteBasemap = (basemapUuid)     => api.delete(`/basemaps/${basemapUuid}`)
 
 // ─── LAYERS ────────────────────────────────────────────────────────────────
 export const getLayers    = (projectUuid) => api.get('/layers', { params: { project_uuid: projectUuid } })
@@ -82,6 +88,7 @@ export const updateGeometry     = (layerUuid, gid, data) => api.put(`/layers/${l
 export const deleteFeature      = (layerUuid, gid)       => api.delete(`/layers/${layerUuid}/features/${gid}`)
 export const bulkDeleteFeatures = (layerUuid, gids)      => api.delete(`/layers/${layerUuid}/features/bulk`, { data: { gids } })
 export const bulkUpdateFeatures = (layerUuid, data)      => api.patch(`/layers/${layerUuid}/features/bulk`, data)
+export const generateDemoData   = (layerUuid, gid, cropType) => api.post(`/layers/${layerUuid}/features/${gid}/demo-data`, { crop_type: cropType })
 
 // ─── NDVI ──────────────────────────────────────────────────────────────────
 export const getNdvi         = (layerUuid, gid)                          => api.get(`/ndvi/${layerUuid}/${gid}`)

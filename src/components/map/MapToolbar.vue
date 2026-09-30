@@ -53,20 +53,9 @@
       <div class="w-px h-6 bg-gray-700 mx-1" />
 
       <!-- Basemap -->
-      <div class="flex items-center gap-0.5 bg-gray-800 rounded-lg p-0.5">
-        <button class="flex items-center justify-center px-2.5 py-1.5 rounded-md bg-transparent text-gray-400
-                       text-[13px] transition-all hover:bg-gray-700 hover:text-gray-50"
-                :class="basemap === 'osm' ? 'bg-green-900 !text-green-400' : ''"
-                title="Street Map" @click="$emit('set-basemap', 'osm')">
-          <i class="pi pi-map" />
-        </button>
-        <button class="flex items-center justify-center px-2.5 py-1.5 rounded-md bg-transparent text-gray-400
-                       text-[13px] transition-all hover:bg-gray-700 hover:text-gray-50"
-                :class="basemap === 'satellite' ? 'bg-green-900 !text-green-400' : ''"
-                title="Satellite" @click="$emit('set-basemap', 'satellite')">
-          <i class="pi pi-globe" />
-        </button>
-      </div>
+      <Select :model-value="basemap" :options="basemaps" option-label="name" option-value="id"
+              class="!h-8 !text-[13px] !bg-gray-800 !border-gray-700 !text-gray-300 w-44"
+              @update:model-value="(id) => $emit('set-basemap', id)" />
     </div>
 
     <!-- Right: panel toggles -->
@@ -89,10 +78,13 @@
 </template>
 
 <script setup>
+import Select from 'primevue/select'
+
 defineProps({
   projectName: String,
   activeTool:  String,
   basemap:     String,
+  basemaps:    { type: Array, default: () => [] },
   hasFeature:  Boolean,
 })
 

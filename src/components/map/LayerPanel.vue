@@ -200,6 +200,14 @@
       </template>
     </Dialog>
 
+    <!-- Post-upload attribute mapping -->
+    <UploadMappingDialog
+        v-model="showMappingDialog"
+        :layer-uuid="uploadTargetLayer?.uuid"
+        :attributes-found="attributesFound"
+        @applied="fetchAll"
+    />
+
     <!-- Rename Layer -->
     <Dialog v-model:visible="showRenameDialog" header="Rename layer" :modal="true" :style="{ width: '360px' }">
       <div class="pt-2">
@@ -224,14 +232,16 @@ import InputText from 'primevue/inputtext'
 import Textarea  from 'primevue/textarea'
 import Select    from 'primevue/select'
 import Menu      from 'primevue/menu'
+import UploadMappingDialog from '@/components/Dialog/UploadMappingDialog.vue'
 import {
   getLayerGroups, createLayerGroup,
   getLayers, createLayer, deleteLayer,
   uploadFile as uploadLayerFile,
 } from '@/services/api'
+import { getLayerColor } from '@/utils/layerColors'
 
 const props = defineProps({ projectUuid: String, activeLayerUuid: String })
-const emit  = defineEmits(['layer-selected', 'layer-toggled', 'open-attribute-table'])
+const emit  = defineEmits(['layer-selected', 'layer-toggled', 'open-attribute-table', 'layers-loaded', 'layer-renamed'])
 
 const toast   = useToast()
 const loading = ref(false)
@@ -247,11 +257,13 @@ const showCreateGroup  = ref(false)
 const showCreateLayer  = ref(false)
 const showUploadDialog = ref(false)
 const showRenameDialog = ref(false)
+const showMappingDialog = ref(false)
 
 const uploadTargetLayer = ref(null)
 const pendingFile       = ref(null)
 const fileInput         = ref(null)
 const renameValue       = ref('')
+const attributesFound   = ref([])
 
 const newGroup = ref({ name: '', description: '' })
 const newLayer = ref({ display_name: '', table_name: '', geometry_type: 'POLYGON', layergroup_uuid: null })
@@ -304,12 +316,6 @@ function openMenu(event, layer) {
 }
 
 // ── Data ───────────────────────────────────────────────────────
-const LAYER_COLORS = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#ec4899']
-const getLayerColor = (uuid) => LAYER_COLORS[Math.abs(hashCode(uuid)) % LAYER_COLORS.length]
-function hashCode(str) {
-  return str.split('').reduce((a, c) => Math.imul(31, a) + c.charCodeAt(0) | 0, 0)
-}
-
 const geomIcons = {
   POINT: 'pi-map-marker', MULTIPOINT: 'pi-map-marker',
   LINESTRING: 'pi-minus', MULTILINESTRING: 'pi-minus',
@@ -336,10 +342,13 @@ async function fetchAll() {
     })
     const groupedUuids = groups.value.flatMap(g => (g.layers || []).map(l => l.uuid))
     ungroupedLayers.value = allLayers.filter(l => !groupedUuids.includes(l.uuid))
+    emit('layers-loaded', allLayers)
   } finally {
     loading.value = false
   }
 }
+
+defineExpose({ refresh: fetchAll })
 
 function toggleGroup(uuid) {
   expandedGroups.value[uuid] = !expandedGroups.value[uuid]
@@ -408,11 +417,17 @@ async function handleUpload() {
   try {
     const formData = new FormData()
     formData.append('file', pendingFile.value)
-    await uploadLayerFile(uploadTargetLayer.value.uuid, formData)
+    const res = await uploadLayerFile(uploadTargetLayer.value.uuid, formData)
     toast.add({ severity: 'success', summary: 'Upload successful', life: 2000 })
     showUploadDialog.value = false
     pendingFile.value = null
-    await fetchAll()
+
+    attributesFound.value = res.data?.attributes_found || []
+    if (attributesFound.value.length) {
+      showMappingDialog.value = true
+    } else {
+      await fetchAll()
+    }
   } catch (err) {
     toast.add({ severity: 'error', summary: err.response?.data?.error || 'Upload failed', life: 3000 })
   } finally { uploading.value = false }

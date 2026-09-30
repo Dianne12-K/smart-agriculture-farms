@@ -56,6 +56,61 @@
         <p class="text-[#bccbb9] text-sm">Select a project to manage its layers</p>
       </div>
 
+      <template v-else>
+        <!-- Section tabs -->
+        <div class="flex gap-1 mb-5 bg-[#191f2f] border border-[#3d4a3d] rounded-lg p-1 w-fit">
+          <button v-for="section in sections" :key="section.key"
+                  class="px-4 py-2 rounded-md text-[12px] font-semibold transition-all"
+                  :class="mainSection === section.key
+                    ? 'bg-[#22c55e] text-[#003915]'
+                    : 'text-[#869585] hover:text-[#dce2f7]'"
+                  @click="mainSection = section.key">
+            {{ section.label }}
+          </button>
+        </div>
+
+        <!-- Basemaps section -->
+        <div v-if="mainSection === 'basemaps'"
+             class="bg-[#191f2f] border border-[#3d4a3d] rounded-xl overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-[#3d4a3d]">
+            <span class="text-[13px] font-semibold text-[#dce2f7]">Basemaps</span>
+            <Button label="Add Basemap" icon="pi pi-plus" size="small"
+                    class="!bg-[#22c55e] !border-[#22c55e] !text-[#003915] font-bold"
+                    @click="openCreateBasemap" />
+          </div>
+
+          <div v-if="loadingBasemaps" class="flex items-center gap-2 p-5 text-[#869585] text-[13px]">
+            <i class="pi pi-spin pi-spinner text-[#22c55e]" />
+            <span>Loading basemaps...</span>
+          </div>
+
+          <div v-else-if="basemaps.length" class="divide-y divide-[#3d4a3d]">
+            <div v-for="bm in basemaps" :key="bm.uuid"
+                 class="flex items-center gap-3 px-4 py-3 hover:bg-[#232a3a]/50 transition-colors">
+              <i class="pi pi-map text-[#22c55e]" />
+              <div class="flex-1 min-w-0">
+                <p class="text-[13px] text-[#dce2f7] font-medium">{{ bm.name }}</p>
+                <p class="text-[11px] text-[#869585] font-mono truncate">{{ bm.url_template }}</p>
+              </div>
+              <span class="text-[10px] text-[#869585] shrink-0">max z{{ bm.max_zoom }}</span>
+              <Button icon="pi pi-pencil" text severity="secondary" size="small"
+                      @click="openEditBasemap(bm)" />
+              <Button icon="pi pi-trash" text severity="danger" size="small"
+                      @click="confirmDeleteBasemap(bm)" />
+            </div>
+          </div>
+
+          <div v-else class="flex flex-col items-center justify-center py-16 gap-2 text-[#869585] text-center px-8">
+            <i class="pi pi-map text-2xl" />
+            <p class="text-[13px]">
+              No custom basemaps yet — the default OpenStreetMap layer is always available on the map.
+            </p>
+            <button class="text-[#22c55e] hover:underline text-[12px]" @click="openCreateBasemap">
+              + Add basemap
+            </button>
+          </div>
+        </div>
+
       <!-- Main content: sidebar + detail panel -->
       <div v-else class="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
@@ -389,6 +444,7 @@
           </template>
         </div>
       </div>
+      </template>
     </div>
 
     <!-- Context Menu -->
@@ -407,6 +463,19 @@
         :group-options="groupOptions"
         :preset-group-uuid="presetGroupUuid"
         @created="handleLayerCreated"
+    />
+
+    <CreateBasemapDialog
+        v-model="showBasemapDialog"
+        :initial="editingBasemap"
+        @submit="handleBasemapSubmit"
+    />
+
+    <UploadMappingDialog
+        v-model="showMappingDialog"
+        :layer-uuid="selectedLayer?.uuid"
+        :attributes-found="attributesFound"
+        @applied="fetchAll(selectedProjectUuid)"
     />
 
     <RenameLayerDialog
@@ -437,17 +506,20 @@ import {
   getLayers, createLayer, deleteLayer,
   getAttributes, addAttributes, deleteAttribute,
   uploadFile as uploadLayerFile,
+  getBasemaps, createBasemap, updateBasemap, deleteBasemap,
 } from '@/services/api'
 
 import Select  from 'primevue/select'
 import Button  from 'primevue/button'
 import Menu    from 'primevue/menu'
 
-import CreateGroupDialog  from '@/components/Dialog/CreateGroupDialog.vue'
-import CreateLayerDialog  from '@/components/Dialog/CreateLayerDialog.vue'
-import RenameLayerDialog  from '@/components/Dialog/RenameLayerDialog.vue'
-import AddAttributeDialog from '@/components/Dialog/AddAttributeDialog.vue'
-import DeleteLayerDialog  from '@/components/Dialog/DeleteLayerDialog.vue'
+import CreateGroupDialog   from '@/components/Dialog/CreateGroupDialog.vue'
+import CreateLayerDialog   from '@/components/Dialog/CreateLayerDialog.vue'
+import RenameLayerDialog   from '@/components/Dialog/RenameLayerDialog.vue'
+import AddAttributeDialog  from '@/components/Dialog/AddAttributeDialog.vue'
+import DeleteLayerDialog   from '@/components/Dialog/DeleteLayerDialog.vue'
+import CreateBasemapDialog from '@/components/Dialog/CreateBasemapDialog.vue'
+import UploadMappingDialog from '@/components/Dialog/UploadMappingDialog.vue'
 
 const toast         = useToast()
 const projectsStore = useProjectsStore()
@@ -461,6 +533,12 @@ const expandedGroups      = ref({})
 const visibleLayers       = ref({})
 const selectedLayer       = ref(null)
 const activeTab           = ref('overview')
+const mainSection         = ref('layers')
+
+const basemaps        = ref([])
+const loadingBasemaps  = ref(false)
+const showBasemapDialog = ref(false)
+const editingBasemap    = ref(null)
 
 const uploading         = ref(false)
 const loadingAttributes = ref(false)
@@ -483,6 +561,8 @@ const attributes = ref([])
 // Upload
 const pendingFile = ref(null)
 const fileInput   = ref(null)
+const showMappingDialog = ref(false)
+const attributesFound   = ref([])
 
 // Context menu
 const layerMenu = ref(null)
@@ -493,6 +573,11 @@ const tabs = [
   { key: 'overview',   label: 'Overview' },
   { key: 'attributes', label: 'Attributes' },
   { key: 'upload',     label: 'Upload' },
+]
+
+const sections = [
+  { key: 'layers',   label: 'Layers' },
+  { key: 'basemaps', label: 'Basemaps' },
 ]
 
 const LAYER_COLORS = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#ec4899']
@@ -546,6 +631,7 @@ watch(selectedProjectUuid, (uuid) => {
   if (uuid) {
     selectedLayer.value = null
     fetchAll(uuid)
+    fetchBasemaps(uuid)
   }
 })
 
@@ -610,6 +696,18 @@ async function fetchAttributes(layerUuid) {
   }
 }
 
+async function fetchBasemaps(projectUuid) {
+  loadingBasemaps.value = true
+  try {
+    const res = await getBasemaps(projectUuid)
+    basemaps.value = res.data || []
+  } catch {
+    toast.add({ severity: 'error', summary: 'Failed to load basemaps', life: 3000 })
+  } finally {
+    loadingBasemaps.value = false
+  }
+}
+
 // ── Openers ────────────────────────────────────────────────────
 function openCreateGroup() {
   showCreateGroup.value = true
@@ -635,6 +733,21 @@ function confirmDelete() {
 function openUpload(layer) {
   if (layer) selectLayer(layer)
   activeTab.value = 'upload'
+}
+
+function openCreateBasemap() {
+  editingBasemap.value = null
+  showBasemapDialog.value = true
+}
+
+function openEditBasemap(basemap) {
+  editingBasemap.value = basemap
+  showBasemapDialog.value = true
+}
+
+function confirmDeleteBasemap(basemap) {
+  if (!confirm(`Delete basemap "${basemap.name}"?`)) return
+  handleDeleteBasemap(basemap)
 }
 
 function openLayerMenu(event, layer) {
@@ -696,6 +809,31 @@ async function handleAttributeCreated(attr) {
   }
 }
 
+async function handleBasemapSubmit(data) {
+  try {
+    if (editingBasemap.value) {
+      await updateBasemap(editingBasemap.value.uuid, data)
+      toast.add({ severity: 'success', summary: 'Basemap updated', life: 2000 })
+    } else {
+      await createBasemap({ ...data, project_uuid: selectedProjectUuid.value })
+      toast.add({ severity: 'success', summary: 'Basemap created', life: 2000 })
+    }
+    await fetchBasemaps(selectedProjectUuid.value)
+  } catch (err) {
+    toast.add({ severity: 'error', summary: err.response?.data?.error || 'Failed to save basemap', life: 3000 })
+  }
+}
+
+async function handleDeleteBasemap(basemap) {
+  try {
+    await deleteBasemap(basemap.uuid)
+    toast.add({ severity: 'success', summary: 'Basemap deleted', life: 2000 })
+    await fetchBasemaps(selectedProjectUuid.value)
+  } catch {
+    toast.add({ severity: 'error', summary: 'Failed to delete basemap', life: 3000 })
+  }
+}
+
 async function deleteAttr(attrId) {
   if (!selectedLayer.value) return
   try {
@@ -716,10 +854,16 @@ async function handleUpload() {
   try {
     const formData = new FormData()
     formData.append('file', pendingFile.value)
-    await uploadLayerFile(selectedLayer.value.uuid, formData)
+    const res = await uploadLayerFile(selectedLayer.value.uuid, formData)
     toast.add({ severity: 'success', summary: 'Upload successful', life: 2000 })
     pendingFile.value = null
-    await fetchAll(selectedProjectUuid.value)
+
+    attributesFound.value = res.data?.attributes_found || []
+    if (attributesFound.value.length) {
+      showMappingDialog.value = true
+    } else {
+      await fetchAll(selectedProjectUuid.value)
+    }
   } catch (err) {
     toast.add({ severity: 'error', summary: err.response?.data?.error || 'Upload failed', life: 3000 })
   } finally {

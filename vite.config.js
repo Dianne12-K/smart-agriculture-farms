@@ -14,18 +14,18 @@ export default defineConfig({
             '@': fileURLToPath(new URL('./src', import.meta.url))
         }
     },
+    worker: {
+        format: 'es',
+    },
+    optimizeDeps: {
+        exclude: ['maplibre-gl'],
+    },
     server: {
         port: 5400,
         strictPort: false,
         hmr: {
             protocol: 'ws',
             host: 'localhost'
-        },
-        proxy: {
-            '/api': {
-                target: 'http://localhost:5000',
-                changeOrigin: true,
-            }
         }
     }
 })
