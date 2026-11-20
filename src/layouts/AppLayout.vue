@@ -11,7 +11,7 @@
           <i class="pi pi-map text-[#003915] text-sm font-bold" />
         </div>
         <span class="text-[#4be277] font-bold text-lg tracking-tight hidden sm:block">
-          Kakamega Farms GIS
+          {{ APP_NAME }}
         </span>
       </div>
 
@@ -49,13 +49,25 @@
 
       <!-- Sidebar (desktop) -->
       <aside class="fixed left-0 top-16 h-[calc(100vh-64px)] hidden lg:flex flex-col
-                    w-[280px] bg-[#191f2f] border-r border-[#3d4a3d] z-40">
+                    bg-[#191f2f] border-r border-[#3d4a3d] z-40 transition-all duration-200"
+             :class="sidebarCollapsed ? 'w-[76px]' : 'w-[280px]'">
 
-        <div class="px-6 py-5 border-b border-[#3d4a3d]">
-          <h2 class="text-[18px] font-bold text-[#4be277]">Main Menu</h2>
-          <p class="text-[10px] text-[#bccbb9] uppercase tracking-[0.05em] mt-0.5">
-            GIS Operator Control
-          </p>
+        <div class="flex items-center border-b border-[#3d4a3d]"
+             :class="sidebarCollapsed ? 'justify-center py-4' : 'justify-between px-6 py-5'">
+          <div v-if="!sidebarCollapsed">
+            <h2 class="text-[18px] font-bold text-[#4be277]">Main Menu</h2>
+            <p class="text-[10px] text-[#bccbb9] uppercase tracking-[0.05em] mt-0.5">
+              GIS Operator Control
+            </p>
+          </div>
+          <button
+              class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-[#bccbb9]
+                   hover:bg-[#2e3545] hover:text-[#dce2f7] transition-colors"
+              :title="sidebarCollapsed ? 'Expand menu' : 'Collapse menu'"
+              @click="sidebarCollapsed = !sidebarCollapsed"
+          >
+            <i class="pi text-sm" :class="sidebarCollapsed ? 'pi-angle-right' : 'pi-angle-left'" />
+          </button>
         </div>
 
         <!-- Nav items -->
@@ -68,16 +80,18 @@
               v-slot="{ isActive, navigate }"
           >
             <div
-                class="flex items-center gap-3 px-4 py-3 rounded-full cursor-pointer
+                class="flex items-center gap-3 py-3 rounded-full cursor-pointer
                      transition-all duration-150 group"
-                :class="isActive
-                ? 'bg-[#0566d9] text-[#e6ecff]'
-                : 'text-[#bccbb9] hover:bg-[#2e3545] hover:text-[#dce2f7]'"
+                :class="[
+                  isActive ? 'bg-[#0566d9] text-[#e6ecff]' : 'text-[#bccbb9] hover:bg-[#2e3545] hover:text-[#dce2f7]',
+                  sidebarCollapsed ? 'justify-center px-0 mx-2' : 'px-4',
+                ]"
+                :title="sidebarCollapsed ? item.label : ''"
                 @click="navigate"
             >
               <i :class="`pi ${item.icon} text-sm`"
                  :style="isActive ? {} : { color: 'inherit' }" />
-              <span class="text-[12px] font-medium tracking-[0.04em] uppercase">
+              <span v-if="!sidebarCollapsed" class="text-[12px] font-medium tracking-[0.04em] uppercase">
                 {{ item.label }}
               </span>
             </div>
@@ -86,7 +100,7 @@
 
         <!-- Storage widget -->
         <div class="px-4 py-4 border-t border-[#3d4a3d]">
-          <div class="p-4 rounded-xl bg-[#2e3545]/40 border border-[#3d4a3d]">
+          <div v-if="!sidebarCollapsed" class="p-4 rounded-xl bg-[#2e3545]/40 border border-[#3d4a3d]">
             <div class="flex items-center justify-between mb-2">
               <span class="text-[10px] font-bold text-[#4be277] uppercase tracking-widest">
                 Storage
@@ -98,11 +112,15 @@
             </div>
             <p class="text-[10px] text-[#869585] mt-2">7.8 GB of 10 GB used</p>
           </div>
+          <div v-else class="flex justify-center" title="Storage: 78% of 10 GB used">
+            <i class="pi pi-database text-[#4be277] text-sm" />
+          </div>
         </div>
       </aside>
 
       <!-- Main content -->
-      <main class="flex-1 lg:ml-[280px] min-h-[calc(100vh-64px)] overflow-auto">
+      <main class="flex-1 min-h-[calc(100vh-64px)] overflow-auto transition-all duration-200"
+            :class="sidebarCollapsed ? 'lg:ml-[76px]' : 'lg:ml-[280px]'">
         <RouterView />
       </main>
     </div>
@@ -135,7 +153,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { APP_NAME } from '@/constants/brand'
+import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useAuthStore } from '@/stores/auth'
@@ -145,9 +164,13 @@ const route     = useRoute()
 const toast     = useToast()
 const authStore = useAuthStore()
 
+const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === 'true')
+watch(sidebarCollapsed, (v) => localStorage.setItem('sidebarCollapsed', v))
+
 const navItems = [
   { name: 'Dashboard',        label: 'Dashboard',         icon: 'pi-home'       },
   { name: 'LayerManagement',  label: 'Layer Management',  icon: 'pi-th-large'   },
+  { name: 'MapHome',          label: 'Map',               icon: 'pi-map'        },
   { name: 'FieldAnalytics',   label: 'Field Analytics',   icon: 'pi-chart-bar'  },
   { name: 'YieldReports',     label: 'Yield Reports',     icon: 'pi-chart-line' },
   { name: 'Settings',         label: 'Settings',          icon: 'pi-cog'        },
@@ -156,7 +179,7 @@ const navItems = [
 // Mobile nav shows only the 4 most important
 const mobileNavItems = [
   { name: 'Dashboard',       label: 'Projects', icon: 'pi-home'      },
-  { name: 'LayerManagement', label: 'Layers',   icon: 'pi-th-large'  },
+  { name: 'MapHome',         label: 'Map',      icon: 'pi-map'       },
   { name: 'FieldAnalytics',  label: 'Analytics', icon: 'pi-chart-bar' },
   { name: 'YieldReports',   label: 'Yield',    icon: 'pi-chart-line' },
 ]
@@ -164,13 +187,15 @@ const mobileNavItems = [
 const pageTitles = {
   Dashboard:        'Projects Dashboard',
   LayerManagement:  'Layer Management',
+  MapHome:          'Map',
   FieldAnalytics:   'Field Analytics',
   YieldReports:     'Yield Reports',
   Settings:         'Settings',
   MapView:          'Map Workspace',
+  AnalyticDetail:   'Analytic Detail',
 }
 
-const currentPageTitle = computed(() => pageTitles[route.name] || 'Kakamega Farms')
+const currentPageTitle = computed(() => pageTitles[route.name] || APP_NAME)
 
 const greeting = computed(() => {
   const h = new Date().getHours()

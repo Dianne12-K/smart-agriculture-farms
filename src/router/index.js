@@ -49,9 +49,19 @@ const routes = [
                 component: () => import('@/views/SettingsView.vue'),
             },
             {
+                path: 'map',
+                name: 'MapHome',
+                component: () => import('@/views/MapHomeView.vue'),
+            },
+            {
                 path: 'map/:projectUuid',
                 name: 'MapView',
                 component: () => import('@/views/MapView.vue'),
+            },
+            {
+                path: 'map/:projectUuid/analytics/:metric/:layerUuid/:gid',
+                name: 'AnalyticDetail',
+                component: () => import('@/views/AnalyticDetailView.vue'),
             },
         ]
     },

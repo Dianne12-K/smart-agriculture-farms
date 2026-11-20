@@ -72,10 +72,12 @@
 
       <!-- ── 1. VEGETATION HEALTH ── -->
       <section>
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="flex items-center gap-2 text-[14px] font-semibold" style="color:#dce2f7;">
+        <div class="flex items-center justify-between mb-3 cursor-pointer group"
+             @click="goToDetail('vegetation')" title="Open full vegetation analysis">
+          <h3 class="flex items-center gap-2 text-[14px] font-semibold group-hover:underline" style="color:#dce2f7;">
             <span class="material-symbols-outlined text-[18px]" style="color:#4be277;">monitoring</span>
             Vegetation health
+            <span class="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100 transition-opacity" style="color:#869585;">chevron_right</span>
           </h3>
           <span class="text-[10px]" style="color:#869585;">Sentinel-2 · 90d</span>
         </div>
@@ -131,7 +133,8 @@
           </div>
         </div>
 
-        <div v-else class="flex justify-center py-6">
+        <div v-else class="flex flex-col items-center gap-2 py-6">
+          <p v-if="ndviError" class="text-[11px] text-center max-w-[260px]" style="color:#ffb4ab;">{{ ndviError }}</p>
           <Button label="Fetch NDVI data" icon="pi pi-refresh" size="small" outlined @click="fetchNdvi" />
         </div>
       </section>
@@ -140,9 +143,11 @@
 
       <!-- ── 2. SOIL & LAND COVER ── -->
       <section>
-        <h3 class="flex items-center gap-2 text-[14px] font-semibold mb-3" style="color:#dce2f7;">
+        <h3 class="flex items-center gap-2 text-[14px] font-semibold mb-3 cursor-pointer group w-fit" style="color:#dce2f7;"
+            @click="goToDetail('soil')" title="Open full soil &amp; land cover analysis">
           <span class="material-symbols-outlined text-[18px]" style="color:#4be277;">opacity</span>
           Soil &amp; land cover
+          <span class="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100 transition-opacity" style="color:#869585;">chevron_right</span>
         </h3>
 
         <div v-if="soilLoading" class="flex items-center gap-2 py-6 justify-center text-[13px]" style="color:#869585;">
@@ -214,7 +219,8 @@
           </div>
         </div>
 
-        <div v-else class="flex justify-center py-6">
+        <div v-else class="flex flex-col items-center gap-2 py-6">
+          <p v-if="soilError" class="text-[11px] text-center max-w-[260px]" style="color:#ffb4ab;">{{ soilError }}</p>
           <Button label="Fetch soil data" icon="pi pi-refresh" size="small" outlined @click="fetchSoil" />
         </div>
       </section>
@@ -223,9 +229,11 @@
 
       <!-- ── 3. DISASTER RISK ── -->
       <section>
-        <h3 class="flex items-center gap-2 text-[14px] font-semibold mb-3" style="color:#dce2f7;">
+        <h3 class="flex items-center gap-2 text-[14px] font-semibold mb-3 cursor-pointer group w-fit" style="color:#dce2f7;"
+            @click="goToDetail('disaster')" title="Open full disaster risk analysis">
           <span class="material-symbols-outlined text-[18px]" style="color:#ffb4ab;">report</span>
           Disaster risk
+          <span class="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100 transition-opacity" style="color:#869585;">chevron_right</span>
         </h3>
 
         <div v-if="disasterLoading" class="flex items-center gap-2 py-6 justify-center text-[13px]" style="color:#869585;">
@@ -253,7 +261,8 @@
           </div>
         </div>
 
-        <div v-else class="flex justify-center py-6">
+        <div v-else class="flex flex-col items-center gap-2 py-6">
+          <p v-if="disasterError" class="text-[11px] text-center max-w-[260px]" style="color:#ffb4ab;">{{ disasterError }}</p>
           <Button label="Scan for risks" icon="pi pi-search" size="small" outlined @click="fetchDisasters" />
         </div>
       </section>
@@ -266,9 +275,11 @@
           <span class="material-symbols-outlined absolute -right-2 -top-2 text-[72px] pointer-events-none"
                 style="color:rgba(75,226,119,0.07);">psychology</span>
 
-          <h3 class="flex items-center gap-2 text-[14px] font-semibold mb-3" style="color:#4be277;">
+          <h3 class="flex items-center gap-2 text-[14px] font-semibold mb-3 cursor-pointer group w-fit" style="color:#4be277;"
+              @click="goToDetail('yield')" title="Open full yield &amp; recommendations analysis">
             <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
             AI insights
+            <span class="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
           </h3>
 
           <div v-if="recsLoading" class="flex items-center gap-2 py-4 justify-center text-[13px]" style="color:#869585;">
@@ -332,6 +343,7 @@
           </div>
 
           <div v-else class="flex flex-col items-center gap-2 py-4">
+            <p v-if="recsError" class="text-[11px] text-center max-w-[260px]" style="color:#ffb4ab;">{{ recsError }}</p>
             <div class="flex gap-2">
               <Select v-model="selectedCropType" :options="cropTypes" placeholder="Crop type"
                       class="text-[12px]" size="small" />
@@ -345,9 +357,11 @@
 
       <!-- ── 5. WEATHER ── -->
       <section>
-        <h3 class="flex items-center gap-2 text-[14px] font-semibold mb-3" style="color:#dce2f7;">
+        <h3 class="flex items-center gap-2 text-[14px] font-semibold mb-3 cursor-pointer group w-fit" style="color:#dce2f7;"
+            @click="goToDetail('weather')" title="Open full weather analysis">
           <span class="material-symbols-outlined text-[18px]" style="color:#4be277;">cloud</span>
           5-day outlook
+          <span class="material-symbols-outlined text-[14px] opacity-0 group-hover:opacity-100 transition-opacity" style="color:#869585;">chevron_right</span>
         </h3>
 
         <div v-if="weatherLoading" class="flex items-center gap-2 py-6 justify-center text-[13px]" style="color:#869585;">
@@ -401,6 +415,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { Line } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler } from 'chart.js'
 import Button from 'primevue/button'
@@ -421,6 +436,21 @@ const props = defineProps({
   feature:     Object,
 })
 defineEmits(['close'])
+
+const router = useRouter()
+
+function goToDetail(metric) {
+  if (!props.layerUuid || props.feature?.id == null) return
+  router.push({
+    name: 'AnalyticDetail',
+    params: {
+      projectUuid: props.projectUuid,
+      metric,
+      layerUuid: props.layerUuid,
+      gid: props.feature.id,
+    },
+  })
+}
 
 // ── State ──────────────────────────────────────────────────────
 const ndviData       = ref(null)
@@ -446,6 +476,16 @@ const yieldLoading    = ref(false)
 const disasterLoading = ref(false)
 const weatherLoading  = ref(false)
 
+const ndviError     = ref('')
+const soilError     = ref('')
+const recsError     = ref('')
+const yieldError    = ref('')
+const disasterError = ref('')
+
+function describeError(e) {
+  return e.response?.data?.error || e.message || 'Request failed'
+}
+
 // Reset + auto-fetch on feature change
 watch(() => props.feature, () => {
   ndviData.value = null; ndviTrend.value = []; ndviChange.value = null
@@ -453,6 +493,8 @@ watch(() => props.feature, () => {
   recommendations.value = []; healthScore.value = null
   yieldData.value = null; disasterData.value = null
   weatherForecast.value = []; weatherSummary.value = null
+  ndviError.value = ''; soilError.value = ''; recsError.value = ''
+  yieldError.value = ''; disasterError.value = ''
 
   fetchNdvi()
   fetchSoil()
@@ -465,6 +507,7 @@ watch(() => props.feature, () => {
 async function fetchNdvi() {
   if (!props.layerUuid || !props.feature?.id) return
   ndviLoading.value = true
+  ndviError.value = ''
   try {
     const [ndviRes, trendRes, changeRes] = await Promise.all([
       getNdvi(props.layerUuid, props.feature.id),
@@ -474,13 +517,14 @@ async function fetchNdvi() {
     ndviData.value   = ndviRes.data
     ndviTrend.value  = trendRes.data.series || []
     ndviChange.value = changeRes.data
-  } catch (e) { console.error('NDVI', e) }
+  } catch (e) { console.error('NDVI', e); ndviError.value = describeError(e) }
   finally { ndviLoading.value = false }
 }
 
 async function fetchSoil() {
   if (!props.layerUuid || !props.feature?.id) return
   soilLoading.value = true
+  soilError.value = ''
   try {
     const [soilRes, lulcRes] = await Promise.all([
       getSoilProfile(props.layerUuid, props.feature.id),
@@ -488,40 +532,43 @@ async function fetchSoil() {
     ])
     soilData.value = soilRes.data
     lulcData.value = lulcRes.data
-  } catch (e) { console.error('Soil', e) }
+  } catch (e) { console.error('Soil', e); soilError.value = describeError(e) }
   finally { soilLoading.value = false }
 }
 
 async function fetchRecommendations() {
   if (!props.layerUuid || !props.feature?.id) return
   recsLoading.value = true
+  recsError.value = ''
   try {
     const cropType = props.feature?.properties?.crop_type || selectedCropType.value
     const res = await getFeatureRecommendation(props.layerUuid, props.feature.id, { crop_type: cropType })
     recommendations.value = res.data.recommendations || []
     healthScore.value  = res.data.health_score
     healthStatus.value = res.data.health_status
-  } catch (e) { console.error('Recs', e) }
+  } catch (e) { console.error('Recs', e); recsError.value = describeError(e) }
   finally { recsLoading.value = false }
 }
 
 async function fetchYield() {
   if (!props.layerUuid || !props.feature?.id) return
   yieldLoading.value = true
+  yieldError.value = ''
   try {
     const res = await predictYield(props.layerUuid, props.feature.id, selectedCropType.value)
     yieldData.value = res.data
-  } catch (e) { console.error('Yield', e) }
+  } catch (e) { console.error('Yield', e); yieldError.value = describeError(e); recsError.value = describeError(e) }
   finally { yieldLoading.value = false }
 }
 
 async function fetchDisasters() {
   if (!props.layerUuid || !props.feature?.id) return
   disasterLoading.value = true
+  disasterError.value = ''
   try {
     const res = await getDisasterScan(props.layerUuid, props.feature.id)
     disasterData.value = res.data
-  } catch (e) { console.error('Disasters', e) }
+  } catch (e) { console.error('Disasters', e); disasterError.value = describeError(e) }
   finally { disasterLoading.value = false }
 }
 

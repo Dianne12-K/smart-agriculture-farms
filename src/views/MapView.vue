@@ -203,6 +203,7 @@ const {
 onMounted(async () => {
   const map = initMap()
   map.on('click', onMapClick)
+  map.on('mousemove', onMapMouseMove)
   basemapsList.value = await loadProjectBasemaps(projectUuid)
 })
 
@@ -275,6 +276,16 @@ async function onMapClick(evt) {
       popup.value.ndvi = res.data.ndvi
     } catch { /* no ndvi yet */ }
   }
+}
+
+function onMapMouseMove(evt) {
+  const map = getMap()
+  if (activeTool.value !== 'pan') {
+    map.getCanvas().style.cursor = ''
+    return
+  }
+  const hit = queryFeaturesAt(evt.point)
+  map.getCanvas().style.cursor = hit ? 'pointer' : ''
 }
 
 // ── Analytics ─────────────────────────────────────────────────
