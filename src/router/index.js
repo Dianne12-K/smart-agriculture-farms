@@ -93,4 +93,26 @@ router.beforeEach((to) => {
     return true
 })
 
+// A deploy replaces every hashed chunk. A tab that was already open still holds
+// the previous build's filenames, so its next lazy import 404s and the route
+// silently fails to mount - the symptom being a successful login that never
+// leaves /login. Reload once to pick up the new index.html.
+const RELOAD_FLAG = 'chunk-reload-attempted'
+
+router.onError((error, to) => {
+    const stale = /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i
+    if (!stale.test(error?.message ?? '')) return
+
+    // Guard against a reload loop if the chunk is genuinely broken rather
+    // than merely stale.
+    if (sessionStorage.getItem(RELOAD_FLAG)) return
+    sessionStorage.setItem(RELOAD_FLAG, '1')
+    window.location.assign(to?.fullPath || '/')
+})
+
+router.afterEach(() => {
+    // Navigation worked, so the next stale import is allowed to reload again.
+    sessionStorage.removeItem(RELOAD_FLAG)
+})
+
 export default router
