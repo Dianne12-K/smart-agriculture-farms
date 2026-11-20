@@ -20,9 +20,14 @@ export function describeApiError(err) {
 
     switch (status) {
         case 400: return detail || 'The server rejected that request.'
-        case 401: return 'Your session expired. Please sign in again.'
+        // Prefer the server's own wording: on a failed sign-in this is
+        // "Incorrect email or password", not an expired session.
+        case 401: return detail || 'Your session expired. Please sign in again.'
         case 403: return detail || 'You do not have access to this project.'
         case 404: return detail || 'That resource no longer exists.'
+        case 409: return detail || 'That conflicts with something that already exists.'
+        case 413: return detail || 'That file is too large to upload.'
+        case 422: return detail || 'The server could not process that request.'
         case 503: return 'The server is not ready yet. Try again shortly.'
         default:
             if (status >= 500) {

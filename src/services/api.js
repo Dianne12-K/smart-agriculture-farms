@@ -112,6 +112,14 @@ export const deleteProject  = (uuid)       => api.delete(`/projects/${uuid}`)
 
 export const updateProject = (uuid, data) => api.put(`/projects/${uuid}`, data)
 
+// ─── PROJECT MEMBERS ───────────────────────────────────────────────────────
+// Sharing is "owner adds an existing account by email" - the collaborator
+// registers themselves first, so there are no invite tokens or mail to run.
+export const getProjectMembers   = (uuid)                  => api.get(`/projects/${uuid}/members`)
+export const addProjectMember    = (uuid, email, role)     => api.post(`/projects/${uuid}/members`, { email, role })
+export const updateMemberRole    = (uuid, userUuid, role)  => api.patch(`/projects/${uuid}/members/${userUuid}`, { role })
+export const removeProjectMember = (uuid, userUuid)        => api.delete(`/projects/${uuid}/members/${userUuid}`)
+
 // ─── LAYER GROUPS ──────────────────────────────────────────────────────────
 export const getLayerGroups   = (projectUuid) => api.get('/layergroups', { params: { project_uuid: projectUuid } })
 export const createLayerGroup = (data)        => api.post('/layergroups', data)

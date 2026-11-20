@@ -73,6 +73,7 @@
 </template>
 
 <script setup>
+import { describeApiError } from '@/utils/apiError'
 import { APP_NAME, APP_TAGLINE } from '@/constants/brand'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -105,8 +106,8 @@ async function handleRegister() {
     toast.add({ severity: 'success', summary: 'Account created!', detail: 'Please sign in', life: 2000 })
     router.push({ name: 'Login' })
   } catch (err) {
-    const msg = err.response?.data?.message || 'Registration failed'
-    toast.add({ severity: 'error', summary: 'Error', detail: msg, life: 4000 })
+    toast.add({ severity: 'error', summary: 'Registration failed',
+               detail: describeApiError(err), life: 6000 })
   } finally {
     loading.value = false
   }

@@ -146,6 +146,17 @@
             <!-- Edit / Delete (hover) -->
             <div class="absolute top-3 right-3 flex gap-1 opacity-0
                         group-hover:opacity-100 transition-opacity">
+              <!-- Only the owner can manage who else has access -->
+              <button
+                  v-if="project.role !== 'viewer' && project.role !== 'editor'"
+                  class="w-7 h-7 rounded-lg bg-[#070e1d]/80 backdrop-blur border border-[#3d4a3d]
+                       flex items-center justify-center text-[#bccbb9] hover:text-[#4be277]
+                       transition-colors"
+                  title="Manage access"
+                  @click.stop="openMembers(project)"
+              >
+                <i class="pi pi-users text-[10px]" />
+              </button>
               <button
                   class="w-7 h-7 rounded-lg bg-[#070e1d]/80 backdrop-blur border border-[#3d4a3d]
                        flex items-center justify-center text-[#bccbb9] hover:text-[#dce2f7]
@@ -266,6 +277,89 @@
       </template>
     </Dialog>
 
+    <!-- Manage access -->
+    <Dialog
+        v-model:visible="showMembersDialog"
+        modal
+        :header="`Access — ${membersProject?.name ?? ''}`"
+        :style="{ width: '34rem' }"
+    >
+      <p class="text-[12px] text-[#bccbb9] mb-4 leading-relaxed">
+        People you add here see this project when they sign in. They must create
+        their own account first at
+        <span class="text-[#4be277]">/register</span>, then give you the email
+        they used.
+      </p>
+
+      <!-- Add -->
+      <div class="flex gap-2 mb-4">
+        <InputText
+            v-model="newMemberEmail"
+            placeholder="their@email.com"
+            class="flex-1"
+            :disabled="membersBusy"
+            @keyup.enter="handleAddMember"
+        />
+        <Select
+            v-model="newMemberRole"
+            :options="['viewer', 'editor', 'admin']"
+            class="w-32"
+            :disabled="membersBusy"
+        />
+        <Button
+            label="Add"
+            :loading="membersBusy"
+            :disabled="!newMemberEmail.trim()"
+            @click="handleAddMember"
+        />
+      </div>
+
+      <div v-if="membersError"
+           class="text-[12px] text-[#ffb4ab] mb-3 p-2 rounded-lg bg-[#2b1b1b] border border-[#5c3a3a]">
+        {{ membersError }}
+      </div>
+
+      <!-- Current access -->
+      <div v-if="membersLoading" class="text-[12px] text-[#bccbb9] py-4">Loading…</div>
+      <ul v-else class="flex flex-col gap-2 max-h-72 overflow-auto">
+        <li
+            v-for="person in members" :key="person.uuid"
+            class="flex items-center gap-3 p-3 rounded-lg bg-[#2e3545]/40 border border-[#3d4a3d]"
+        >
+          <div class="w-8 h-8 rounded-full bg-[#22c55e]/15 flex items-center justify-center shrink-0">
+            <i class="pi pi-user text-[#4be277] text-xs" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] text-[#dce2f7] font-medium truncate">{{ person.username }}</p>
+            <p class="text-[11px] text-[#869585] truncate">{{ person.email }}</p>
+          </div>
+          <span v-if="person.role === 'owner'"
+                class="text-[10px] px-2 py-0.5 rounded-full shrink-0"
+                style="background:rgba(75,226,119,0.15); color:#4be277;">owner</span>
+          <template v-else>
+            <Select
+                :model-value="person.role"
+                :options="['viewer', 'editor', 'admin']"
+                class="w-28 shrink-0"
+                @update:model-value="(r) => handleRoleChange(person, r)"
+            />
+            <button
+                class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0
+                     text-[#bccbb9] hover:text-[#ffb4ab] transition-colors"
+                title="Remove access"
+                @click="handleRemoveMember(person)"
+            >
+              <i class="pi pi-times text-[10px]" />
+            </button>
+          </template>
+        </li>
+      </ul>
+
+      <template #footer>
+        <Button label="Done" text severity="secondary" @click="showMembersDialog = false" />
+      </template>
+    </Dialog>
+
     <ConfirmDialog />
   </div>
 </template>
@@ -276,8 +370,13 @@ import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { useProjectsStore } from '@/stores/projects'
-import { updateProject } from '@/services/api'
+import {
+  updateProject, getProjectMembers, addProjectMember,
+  updateMemberRole, removeProjectMember,
+} from '@/services/api'
+import { describeApiError } from '@/utils/apiError'
 import Dialog from 'primevue/dialog'
+import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import Button from 'primevue/button'
@@ -289,6 +388,72 @@ const confirm       = useConfirm()
 const projectsStore = useProjectsStore()
 
 const showCreateDialog = ref(false)
+
+// ── Manage access ──────────────────────────────────────────────
+const showMembersDialog = ref(false)
+const membersProject    = ref(null)
+const members           = ref([])
+const membersLoading    = ref(false)
+const membersBusy       = ref(false)
+const membersError      = ref('')
+const newMemberEmail    = ref('')
+const newMemberRole     = ref('viewer')
+
+async function openMembers(project) {
+  membersProject.value   = project
+  showMembersDialog.value = true
+  members.value          = []
+  membersError.value     = ''
+  newMemberEmail.value   = ''
+  newMemberRole.value    = 'viewer'
+  membersLoading.value   = true
+  try {
+    members.value = (await getProjectMembers(project.uuid)).data
+  } catch (e) {
+    membersError.value = describeApiError(e)
+  } finally {
+    membersLoading.value = false
+  }
+}
+
+async function handleAddMember() {
+  const email = newMemberEmail.value.trim()
+  if (!email) return
+  membersBusy.value  = true
+  membersError.value = ''
+  try {
+    await addProjectMember(membersProject.value.uuid, email, newMemberRole.value)
+    members.value = (await getProjectMembers(membersProject.value.uuid)).data
+    newMemberEmail.value = ''
+    toast.add({ severity: 'success', summary: 'Access granted',
+                detail: `${email} can now open this project`, life: 3000 })
+  } catch (e) {
+    // Surfaces the backend's own wording, e.g. "No account exists for X.
+    // Ask them to register first" - the actionable part.
+    membersError.value = describeApiError(e)
+  } finally {
+    membersBusy.value = false
+  }
+}
+
+async function handleRoleChange(person, role) {
+  if (!role || role === person.role) return
+  try {
+    await updateMemberRole(membersProject.value.uuid, person.uuid, role)
+    person.role = role
+  } catch (e) {
+    membersError.value = describeApiError(e)
+  }
+}
+
+async function handleRemoveMember(person) {
+  try {
+    await removeProjectMember(membersProject.value.uuid, person.uuid)
+    members.value = members.value.filter(m => m.uuid !== person.uuid)
+  } catch (e) {
+    membersError.value = describeApiError(e)
+  }
+}
 const saving           = ref(false)
 const editingProject   = ref(null)
 const form = ref({ name: '', description: '' })

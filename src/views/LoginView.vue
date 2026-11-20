@@ -139,6 +139,7 @@
 </template>
 
 <script setup>
+import { describeApiError } from '@/utils/apiError'
 import { APP_NAME, APP_TAGLINE } from '@/constants/brand'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -168,8 +169,8 @@ async function handleLogin() {
     toast.add({ severity: 'success', summary: 'Welcome back!', detail: 'Logged in successfully', life: 2000 })
     router.push({ name: 'Dashboard' })
   } catch (err) {
-    const msg = err.response?.data?.message || 'Invalid email or password'
-    toast.add({ severity: 'error', summary: 'Login failed', detail: msg, life: 4000 })
+    toast.add({ severity: 'error', summary: 'Login failed',
+               detail: describeApiError(err), life: 6000 })
   } finally {
     loading.value = false
   }
