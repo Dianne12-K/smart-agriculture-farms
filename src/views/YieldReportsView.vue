@@ -81,8 +81,12 @@
             <span class="block text-[28px] font-bold text-[#dce2f7]">{{ prediction.predicted_yield }}</span>
             <span class="text-[11px] text-[#869585]">{{ prediction.yield_unit || 'bags/acre' }}</span>
             <span class="block mt-1 text-[10px] px-2 py-0.5 rounded-full inline-block"
-                  style="background:rgba(75,226,119,0.15); color:#4be277;">
-              {{ prediction.confidence_pct }}% confidence
+                  :style="prediction.ground_truth_validated === false
+                    ? 'background:rgba(250,204,21,0.15); color:#facc15;'
+                    : 'background:rgba(75,226,119,0.15); color:#4be277;'"
+                  :title="prediction.confidence_basis || ''">
+              {{ prediction.confidence_pct }}% confidence{{
+                prediction.ground_truth_validated === false ? ' (modelled)' : '' }}
             </span>
           </div>
         </section>

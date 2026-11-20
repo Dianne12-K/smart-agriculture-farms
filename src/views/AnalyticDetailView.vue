@@ -170,8 +170,13 @@
           <div v-if="yieldData" class="ml-4">
             <span class="text-[24px] font-bold">{{ yieldData.predicted_yield }}</span>
             <span class="text-[12px] ml-1" style="color:#869585;">{{ yieldData.unit || 't/ha' }}</span>
-            <span class="text-[11px] ml-2 px-2 py-0.5 rounded-full" style="background:rgba(75,226,119,0.12); color:#4be277;">
-              {{ yieldData.confidence_pct }}% confidence
+            <span class="text-[11px] ml-2 px-2 py-0.5 rounded-full"
+                  :style="yieldData.ground_truth_validated === false
+                    ? 'background:rgba(250,204,21,0.14); color:#facc15;'
+                    : 'background:rgba(75,226,119,0.12); color:#4be277;'"
+                  :title="yieldData.confidence_basis || ''">
+              {{ yieldData.confidence_pct }}% confidence{{
+                yieldData.ground_truth_validated === false ? ' (modelled)' : '' }}
             </span>
           </div>
         </section>
