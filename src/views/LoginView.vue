@@ -9,9 +9,9 @@
           <i class="pi pi-map text-[#003915] text-4xl" />
         </div>
         <h1 class="text-[30px] leading-[38px] font-bold text-[#dce2f7] tracking-tight">
-          Kakamega Farms
+          {{ APP_NAME }}
         </h1>
-        <p class="text-sm text-[#bccbb9] mt-1">GIS-powered farm management</p>
+        <p class="text-sm text-[#bccbb9] mt-1">{{ APP_TAGLINE }}</p>
       </div>
 
       <!-- Card -->
@@ -29,7 +29,7 @@
               <InputText
                   v-model="form.email"
                   type="email"
-                  placeholder="officer@kakamegafarms.com"
+                  placeholder="you@example.com"
                   :disabled="loading"
                   class="w-full !pl-10 !pr-4 !py-3 !rounded !bg-[#111827] !border-[#1f2937]
                        !text-[#dce2f7] text-sm
@@ -139,6 +139,7 @@
 </template>
 
 <script setup>
+import { APP_NAME, APP_TAGLINE } from '@/constants/brand'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'

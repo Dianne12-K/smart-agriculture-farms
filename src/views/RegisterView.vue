@@ -7,8 +7,8 @@
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-600 mb-4">
           <i class="pi pi-map text-white text-3xl" />
         </div>
-        <h1 class="text-3xl font-bold text-white">Kakamega Farms</h1>
-        <p class="text-gray-400 mt-1">GIS-powered farm management</p>
+        <h1 class="text-3xl font-bold text-white">{{ APP_NAME }}</h1>
+        <p class="text-gray-400 mt-1">{{ APP_TAGLINE }}</p>
       </div>
 
       <!-- Card -->
@@ -32,7 +32,7 @@
             <InputText
                 v-model="form.email"
                 type="email"
-                placeholder="diana@kakamega.com"
+                placeholder="you@example.com"
                 class="w-full"
                 :disabled="loading"
             />
@@ -73,6 +73,7 @@
 </template>
 
 <script setup>
+import { APP_NAME, APP_TAGLINE } from '@/constants/brand'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
