@@ -3,17 +3,28 @@ import router from '@/router'
 
 
 
+// The API is deployed on Render's free tier, which spins the container down
+// after ~15 minutes idle. The next request then pays a cold start of up to
+// ~90s. Without a timeout axios waits forever and the UI just looks broken,
+// so allow generously for the cold start but still fail eventually.
+const REQUEST_TIMEOUT_MS = 120_000
+
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000/api',
+    timeout: REQUEST_TIMEOUT_MS,
     headers: { 'Content-Type': 'application/json' }
 })
+
+export const clearSession = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('uuid')
+}
 
 // ─── REQUEST INTERCEPTOR ───────────────────────────────────────────────────
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token')
-        console.log('interceptor token:', token)
-        console.log('request url:', config.url)
         if (token) {
             config.headers.set('Authorization', `Bearer ${token}`)
         }
@@ -23,16 +34,67 @@ api.interceptors.request.use(
 )
 
 // ─── RESPONSE INTERCEPTOR ──────────────────────────────────────────────────
+// Access tokens are short-lived now, so a 401 usually means "expired", not
+// "logged out". Exchange the refresh token for a new access token and replay
+// the original request once; only bail to /login if that also fails.
+//
+// Concurrent 401s share one refresh call via `refreshPromise`, otherwise a map
+// view firing six analytics requests at once would trigger six refreshes and
+// race each other.
+let refreshPromise = null
+
+const refreshAccessToken = () => {
+    if (!refreshPromise) {
+        const refreshToken = localStorage.getItem('refresh_token')
+        if (!refreshToken) return Promise.reject(new Error('no refresh token'))
+
+        refreshPromise = axios
+            .post(
+                `${api.defaults.baseURL}/auth/refresh`,
+                {},
+                {
+                    timeout: REQUEST_TIMEOUT_MS,
+                    headers: { Authorization: `Bearer ${refreshToken}` }
+                }
+            )
+            .then(({ data }) => {
+                localStorage.setItem('token', data.access_token)
+                return data.access_token
+            })
+            .finally(() => { refreshPromise = null })
+    }
+    return refreshPromise
+}
+
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
+        const original = error.config
+
+        const isExpiredAccessToken =
+            error.response?.status === 401 &&
+            original &&
+            !original._retried &&
+            !original.url?.includes('/auth/') &&
+            localStorage.getItem('refresh_token')
+
+        if (isExpiredAccessToken) {
+            original._retried = true
+            try {
+                const token = await refreshAccessToken()
+                original.headers.Authorization = `Bearer ${token}`
+                return api(original)
+            } catch {
+                // fall through to logout below
+            }
+        }
+
         if (
             error.response?.status === 401 &&
             router.currentRoute.value.name !== 'Login' &&
             localStorage.getItem('token')
         ) {
-            localStorage.removeItem('token')
-            localStorage.removeItem('uuid')
+            clearSession()
             router.replace({ name: 'Login' })
         }
         return Promise.reject(error)

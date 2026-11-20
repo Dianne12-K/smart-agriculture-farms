@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { getProjects, createProject, deleteProject, getLayers, getLayerGroups } from '@/services/api'
-import axios from 'axios'
+import { describeApiError } from '@/utils/apiError'
 
 export const useProjectsStore = defineStore('projects', () => {
     const projects    = ref([])
     const loading     = ref(false)
+    const error       = ref(null)   // null = no failure; string = what went wrong
+    const loaded      = ref(false)  // true once a fetch has completed at least once
     const layerCounts = ref({})  // { [uuid]: number }
     const groupCounts = ref({})  // { [uuid]: number }
 
@@ -16,6 +18,7 @@ export const useProjectsStore = defineStore('projects', () => {
 
     async function fetchProjects() {
         loading.value = true
+        error.value   = null
         try {
             const res = await getProjects()
             projects.value = res.data
@@ -39,8 +42,17 @@ export const useProjectsStore = defineStore('projects', () => {
                     }
                 })
             )
+        } catch (e) {
+            // Never leave a failure looking like an empty account. A timed-out
+            // cold start, a 403 and "you genuinely have no projects" all render
+            // identically otherwise, which is exactly how a misconfigured
+            // deployment gets mistaken for missing data.
+            projects.value = []
+            error.value = describeApiError(e)
+            throw e
         } finally {
             loading.value = false
+            loaded.value  = true
         }
     }
 
@@ -58,7 +70,7 @@ export const useProjectsStore = defineStore('projects', () => {
     }
 
     return {
-        projects, loading,
+        projects, loading, error, loaded,
         totalProjects, totalLayers, totalGroups,
         fetchProjects, addProject, removeProject,
     }

@@ -873,6 +873,7 @@ async function handleUpload() {
 
 // ── Init ───────────────────────────────────────────────────────
 onMounted(() => {
-  if (!projectsStore.projects.length) projectsStore.fetchProjects()
+  // fetchProjects rethrows; the message is already on projectsStore.error
+  if (!projectsStore.projects.length) projectsStore.fetchProjects().catch(() => {})
 })
 </script>

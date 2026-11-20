@@ -30,6 +30,13 @@ export const useAuthStore = defineStore('auth', {
             localStorage.setItem('token', this.token)
             localStorage.setItem('uuid',  this.uuid)
             localStorage.setItem('user',  JSON.stringify(this.user))
+
+            // Access tokens expire after an hour; the refresh token is what
+            // keeps the session alive. api.js reads it straight from storage
+            // when a request comes back 401.
+            if (res.data.refresh_token) {
+                localStorage.setItem('refresh_token', res.data.refresh_token)
+            }
         },
 
         async register(userData) {
@@ -41,6 +48,7 @@ export const useAuthStore = defineStore('auth', {
             this.uuid  = null
             this.user  = null
             localStorage.removeItem('token')
+            localStorage.removeItem('refresh_token')
             localStorage.removeItem('uuid')
             localStorage.removeItem('user')
         }

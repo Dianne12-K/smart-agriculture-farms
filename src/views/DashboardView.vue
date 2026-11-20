@@ -67,6 +67,30 @@
         </div>
       </div>
 
+      <!-- Error state -->
+      <!-- Must precede the empty state: a failed fetch leaves projects at [],
+           and "No projects yet" would otherwise hide a real server problem. -->
+      <div
+          v-else-if="projectsStore.error"
+          class="flex flex-col items-center justify-center py-24 text-center"
+      >
+        <div class="w-20 h-20 rounded-2xl bg-[#2b1b1b] border border-[#5c3a3a]
+                    flex items-center justify-center mb-4">
+          <i class="pi pi-exclamation-triangle text-4xl text-[#f87171]" />
+        </div>
+        <h3 class="text-[#dce2f7] text-lg font-semibold">Couldn't load your projects</h3>
+        <p class="text-[#bccbb9] text-sm mt-1 mb-6 max-w-md">
+          {{ projectsStore.error }}
+        </p>
+        <button
+            class="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#22c55e] text-[#003915]
+                 text-[12px] font-bold uppercase hover:brightness-110 transition-all"
+            @click="loadProjects"
+        >
+          <i class="pi pi-refresh" /> Try again
+        </button>
+      </div>
+
       <!-- Empty state -->
       <div
           v-else-if="projectsStore.projects.length === 0"
@@ -307,7 +331,17 @@ function formatDate(dateStr) {
   })
 }
 
-onMounted(() => projectsStore.fetchProjects())
+// fetchProjects rethrows so callers can react; the store has already recorded
+// the message in projectsStore.error, which the error state above renders.
+async function loadProjects() {
+  try {
+    await projectsStore.fetchProjects()
+  } catch {
+    /* surfaced via projectsStore.error */
+  }
+}
+
+onMounted(loadProjects)
 
 function openProject(project) {
   router.push({ name: 'MapView', params: { projectUuid: project.uuid } })
