@@ -858,7 +858,8 @@ async function handleUpload() {
     toast.add({ severity: 'success', summary: 'Upload successful', life: 2000 })
     pendingFile.value = null
 
-    attributesFound.value = res.data?.attributes_found || []
+    // Backend returns { column_name: type }; the mapping dialog wants the names.
+    attributesFound.value = Object.keys(res.data?.attributes_found || {})
     if (attributesFound.value.length) {
       showMappingDialog.value = true
     } else {
