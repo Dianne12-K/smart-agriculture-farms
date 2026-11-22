@@ -22,7 +22,7 @@ export default defineConfig({
     },
     server: {
         port: 5400,
-        strictPort: false,
+        strictPort: true,
         hmr: {
             protocol: 'ws',
             host: 'localhost'

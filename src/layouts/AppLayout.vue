@@ -98,23 +98,10 @@
           </RouterLink>
         </nav>
 
-        <!-- Storage widget -->
-        <div class="px-4 py-4 border-t border-[#3d4a3d]">
-          <div v-if="!sidebarCollapsed" class="p-4 rounded-xl bg-[#2e3545]/40 border border-[#3d4a3d]">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-[10px] font-bold text-[#4be277] uppercase tracking-widest">
-                Storage
-              </span>
-              <span class="text-[10px] text-[#bccbb9]">78%</span>
-            </div>
-            <div class="h-1.5 w-full bg-[#141b2b] rounded-full overflow-hidden">
-              <div class="h-full bg-[#4be277] rounded-full transition-all" style="width:78%" />
-            </div>
-            <p class="text-[10px] text-[#869585] mt-2">7.8 GB of 10 GB used</p>
-          </div>
-          <div v-else class="flex justify-center" title="Storage: 78% of 10 GB used">
-            <i class="pi pi-database text-[#4be277] text-sm" />
-          </div>
+        <!-- Copyright -->
+        <div class="px-4 py-4 border-t border-[#3d4a3d] text-[10px] text-[#869585] text-center">
+          <span v-if="!sidebarCollapsed">&copy; {{ currentYear }} {{ APP_NAME }}. All rights reserved.</span>
+          <span v-else :title="`© ${currentYear} ${APP_NAME}`">&copy;</span>
         </div>
       </aside>
 
@@ -163,6 +150,8 @@ const router    = useRouter()
 const route     = useRoute()
 const toast     = useToast()
 const authStore = useAuthStore()
+
+const currentYear = new Date().getFullYear()
 
 const sidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === 'true')
 watch(sidebarCollapsed, (v) => localStorage.setItem('sidebarCollapsed', v))
